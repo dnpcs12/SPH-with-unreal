@@ -29,3 +29,9 @@ Boundary Handling
 
 WCSPH
 ![image](https://user-images.githubusercontent.com/50435598/146829398-ea43a985-6313-473c-a9af-a6432c1a54fb.png)
+
+
+Reference
+1. M. Müller, D. Charypar, and M. Gross. Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, pages 154–159, 2003.
+2. Koschier, Dan, Jan Bender, Barbara Solenthaler, and Matthias Teschner. "Smoothed particle hydrodynamics techniques for the physics based simulation of fluids and solids." arXiv preprint arXiv:2009.06944 (2020).
+3. David Staubach , "Smoothed Particle Hydrodynamics Real-Time Fluid Simulation Approach." Friedrich-Alexander-Universitaet Erlangen-Nuernberg (2010).
