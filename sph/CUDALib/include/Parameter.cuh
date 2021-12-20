@@ -14,12 +14,14 @@ struct SimParams
     float3 worldOrigin;
     float3 cellSize;
 
+    uint boundaryStartIndex;
     float boundaryDamping;
 
     float temp;
     float Cs;
     float3 boundary;
     float timeStep;
+    float unrealDeltaTime;
     float restDensity;
     float mass;
     float boundaryMass;
@@ -33,5 +35,6 @@ struct SimParams
     float Wpoly6;
     float Wspiky_Grad;
     float Wviscosity_Lapl;
+    
 };
 #endif

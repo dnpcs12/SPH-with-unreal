@@ -2,7 +2,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "Parameter.cuh"
-
+#include "defines.h"
 
 extern "C"
 {
@@ -60,4 +60,38 @@ extern "C"
 
     void sortParticles(uint* dGridParticleHash, uint* dGridParticleIndex, uint numParticles);
 
+    //-------¸¶ÄªÅ¥ºê-------------------///
+    void allocateTextures(uint** d_edgeTable, uint** d_triTable, uint** d_numVertsTable);
+    void destroyAllTextureObjects();
+    void ThrustScanWrapper(unsigned int* output, unsigned int* input, unsigned int numElements);
+
+
+
+    void launch_classifyVoxel(dim3 grid,
+        dim3 threads,
+        uint* voxelVerts,
+        uint* voxelOccupied,
+        uint3 gridSize,
+        uint3 gridSizeShift,
+        uint3 gridSizeMask,
+        uint numVoxels,
+        float3 voxelSize,
+        float isoValue,
+        float* SortedPositions,
+        uint* CellStarts,
+        uint* CellEnds,
+        uint* gridParticleIndex);
+
+    void launch_compactVoxels(dim3 grid, dim3 threads, uint* compactedVoxelArray, uint* voxelOccupied, uint* voxelOccupiedScan, uint numVoxels);
+
+    void launch_generateTriangles(dim3 grid, dim3 threads,
+        float4* pos, float4* norm, uint* compactedVoxelArray, uint* numVertsScanned,
+        uint3 gridSize, uint3 gridSizeShift, uint3 gridSizeMask,
+        float3 voxelSize, float isoValue, uint activeVoxels, uint maxVerts,
+        float4* SortedPositions,
+        uint* CellStarts,
+        uint* CellEnds,
+        uint* gridParticleIndex);
+
 }
+

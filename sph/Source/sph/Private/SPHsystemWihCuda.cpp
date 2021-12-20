@@ -10,6 +10,9 @@ ASPHsystemWihCuda::ASPHsystemWihCuda()
 	PrimaryActorTick.bCanEverTick = true;
 	particles = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("particles"));
 	bparticles = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("bparticles"));
+	ParticleProceduralMeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>("ParticleProceduralMeshComponent");
+
+	ParticleProceduralMeshComponent->bUseAsyncCooking = true;
 }
 
 
@@ -34,16 +37,16 @@ void ASPHsystemWihCuda::AddRigidySphere(float r, FVector initpos)
 		{
 			FVector pos = { (float)(xr * cos(x * xSeta)), (float)(xr * sin(x * xSeta)),(float)(r * sin(z * seta)) };
 			//UE_LOG(LogTemp, Log, TEXT("%f %f %f"), pos.X,pos.Y,pos.Z);
-			pos += initpos * 0.01f;
-			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100 , mParticleScale));
+			pos += initpos * (1/scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			addParticleToCuda(m_totalParticles + bCount, { pos.X ,pos.Y,pos.Z });
 			bCount++;
 
 			if (z == 0) continue;
 			pos = { (float)(xr * cos(x * xSeta)), (float)(xr * sin(x * xSeta)),-(float)(r * sin(z * seta)) };
 			//UE_LOG(LogTemp, Log, TEXT("%f %f %f"), pos.X, pos.Y, pos.Z);
-			pos += initpos * 0.01f;
-			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+			pos += initpos * (1/scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			addParticleToCuda(m_totalParticles + bCount, { pos.X ,pos.Y,pos.Z });
 			bCount++;
 		}
@@ -84,8 +87,8 @@ void ASPHsystemWihCuda::AddRigidyHemisphere(float r, FVector initpos,bool up)
 		{
 			FVector pos = { (float)(xr * cos(x * xSeta)), (float)(xr * sin(x * xSeta)), dir * (float)(r * sin(z * seta)) };
 			//UE_LOG(LogTemp, Log, TEXT("%f %f %f"), pos.X,pos.Y,pos.Z);
-			pos += initpos * 0.01f;
-			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+			pos += initpos * (1/ scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			addParticleToCuda(m_totalParticles + bCount, { pos.X ,pos.Y,pos.Z });
 			bCount++;
 		}
@@ -121,9 +124,9 @@ void ASPHsystemWihCuda::AddRigidyCylinder(float r, int height, FVector initpos)
 		for (size_t x = 0; x < count; x++)
 		{
 			FVector pos = { (float)(r * cos(x * seta)), (float)(r * sin(x * seta)),z * particleRadius * 2 };
-			pos += initpos * 0.01f;
+			pos += initpos * (1/ scaleCorrectedValue);
 			//UE_LOG(LogTemp, Log, TEXT("pos : %f %f %f"), pos.X,pos.Y,pos.Z);
-			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			addParticleToCuda(m_totalParticles + bCount, { pos.X,pos.Y,pos.Z });
 			bCount++;
 		}
@@ -142,9 +145,9 @@ void ASPHsystemWihCuda::AddRigidyCylinder(float r, int height, FVector initpos)
 		for (SIZE_T x = 0; x < xCount; x++)
 		{
 			FVector pos = { (float)(xr * cos(x * xSeta)), (float)(xr * sin(x * xSeta)),height * particleRadius * 2 };
-			pos += initpos * 0.01f;
+			pos += initpos *(1/ scaleCorrectedValue);
 			//UE_LOG(LogTemp, Log, TEXT("pos : %f %f %f"), pos.X,pos.Y,pos.Z);
-			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 
 			addParticleToCuda(m_totalParticles + bCount, { pos.X ,pos.Y,pos.Z });
 			bCount++;
@@ -177,17 +180,18 @@ void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 	float posZ = 0;
 
 	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
-	for (size_t x = 0; x < 3; x++)
+
+	for (size_t x = 0; x < spawnX; x++)
 	{
-		for (size_t y = 0; y < 3; y++)
+		for (size_t y = 0; y < spawnY; y++)
 		{
 			posX = -boundary.X;
 			posY = x * particleRadius * 2;
 			posZ = y * particleRadius * 2;
 			FVector pos = { posX, posY, posZ };
-			pos += initpos * 0.01f;
+			pos += initpos * (1/ scaleCorrectedValue);
 			addParticleToCuda(m_numFluidsParticles, pos,{10,0,-3});
-			particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+			particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			m_numFluidsParticles++;
 			if (m_numFluidsParticles >= m_maxFluidParticles)
 			{
@@ -203,13 +207,56 @@ void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
 }
 
-void ASPHsystemWihCuda::ResistRigidy(AMyStaticMeshActor* rigidyActor)
+void ASPHsystemWihCuda::ResistRigidy(AMyStaticMeshActor* rigidyActor, int type)
 {	
 	if(rigidyActor == nullptr) return;
 
 	rigidyActors.Add(rigidyActor);
 	FTransform actorT = rigidyActor->GetActorTransform();
-	AddRigidySphere(actorT.GetScale3D().X/2, actorT.GetLocation() - GetActorLocation());
+	
+	if (type == 2)
+	{
+		AddRigidyHemisphere(actorT.GetScale3D().X , actorT.GetLocation() - GetActorLocation(), true);
+	}
+	else if (type == 3)
+	{
+		AddRigidyHemisphere(actorT.GetScale3D().X , actorT.GetLocation() - GetActorLocation(), false);
+
+	}
+	else if(type == 4)
+	{
+		int height = actorT.GetScale3D().Z /(particleRadius*2);
+		AddRigidyCylinder(actorT.GetScale3D().X + 0.03f, 12, actorT.GetLocation() - GetActorLocation());
+	}
+	else
+	{
+		AddRigidySphere(actorT.GetScale3D().X /2, actorT.GetLocation() - GetActorLocation());
+	}
+
+}
+
+void ASPHsystemWihCuda::ResetFluidPosition()
+{
+	uint i = 0;
+	float posX = 0;
+	float posY = 0;
+	float posZ = 0;
+	for (SIZE_T z = 0; z < sizeZ; z++)
+	{
+		for (SIZE_T y = 0; y < sizeY; y++)
+		{
+			for (SIZE_T x = 0; x < sizeX; x++)
+			{
+				posX = x * particleRadius * 2 - m_params.boundary.x / 2;
+				posY = y * particleRadius * 2 - m_params.boundary.z / 2;
+				posZ = z * particleRadius * 2 - m_params.boundary.y / 2;
+				i++;
+				addParticleToCuda(i, {posX,posY,posZ});
+			}
+		}
+	}
+	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
+	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
 }
 
 // Called when the game starts or when spawned
@@ -233,9 +280,9 @@ void ASPHsystemWihCuda::tempProcess()
 		{
 			for (SIZE_T x = 0; x < sizeX; x++)
 			{
-				posX = x * particleRadius * 2 + m_params.boundary.x * 100;
-				posY = y * particleRadius * 2 + m_params.boundary.y * 100;
-				posZ = z * particleRadius * 2 + m_params.boundary.z * 100;
+				posX = x * particleRadius * 2 + m_params.boundary.x * scaleCorrectedValue;
+				posY = y * particleRadius * 2 + m_params.boundary.y * scaleCorrectedValue;
+				posZ = z * particleRadius * 2 + m_params.boundary.z * scaleCorrectedValue;
 
 				FVector pos = { posX, posY, posZ };
 				addParticleToCuda(idx, pos);
@@ -285,10 +332,16 @@ void ASPHsystemWihCuda::initSystem()
 	UE_LOG(LogTemp, Log, TEXT("%f "), particleRadius);
 	mParticleScale = FVector(particleRadius * 2, particleRadius * 2, particleRadius * 2);
 	m_params.particleRadius = particleRadius;
-	m_params.boundary = FVectorToFloat3(boundary*0.01f);
-	m_params.worldOrigin = make_float3(0.0f, 0.0f, 0.0f);
-	float cellSize = supportRadius;//m_params.particleRadius * 2.2f;
+	m_params.boundary = FVectorToFloat3(boundary*(1/ scaleCorrectedValue));
+	m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
+
+	float cellSize = m_params.particleRadius * 2.0f;//supportRadius;//m_params.particleRadius * 2.0f;
 	m_params.cellSize = make_float3(cellSize, cellSize, cellSize);
+
+	//두 그리드를 일치시킴.
+	mc_voxelSize = m_params.cellSize;
+	
+	mc_isoValue = isoValue;//0.0005f;
 
 	m_params.boundaryDamping = -elasticity; // ...
 
@@ -305,7 +358,7 @@ void ASPHsystemWihCuda::initSystem()
 	m_params.threshold = threshold;
 	m_params.gasStiffness = gasStiffness;
 
-	m_params.H = cellSize;//particleRadius * 2.2f;
+	m_params.H = supportRadius;
 	m_params.H2 = m_params.H * m_params.H;
 	m_params.Wpoly6 = 315.0f / (64.0f * myPI * pow(m_params.H, 9));
 	m_params.Wspiky_Grad = 45.0f / (myPI * pow(m_params.H, 6));
@@ -314,7 +367,7 @@ void ASPHsystemWihCuda::initSystem()
 	m_params.Cs = Cs;
 	//UE_LOG(LogTemp, Log, TEXT("%f %f %f"), mParticleScale.X, mParticleScale.Y, mParticleScale.Z);
 	m_maxFluidParticles = sizeX * sizeY * sizeZ;
-
+	m_params.boundaryStartIndex = m_maxFluidParticles;
 	//float rb = (boundaryR / particleRadius) * ((boundaryR / particleRadius)+1);
 	m_maxParticles = m_maxFluidParticles + maxBoundaryParticle; //rb * PI * 5;
 
@@ -352,13 +405,37 @@ void ASPHsystemWihCuda::initSystem()
 	allocateArray((void**)&m_dCellStart, m_numGridCells * sizeof(uint));
 	allocateArray((void**)&m_dCellEnd, m_numGridCells * sizeof(uint));
 
-	int idx = 0;
-	float posX = 0;
-	float posY = 0;
-	float posZ = 0;
-	
-	for (SIZE_T z = 0; z < sizeZ; z++)
+
+	/*---------------------------------initMC------------------------------------------------*/
+	mc_hPos = new float4[mc_maxVerts];
+	mc_hNormal = new float4[mc_maxVerts];
+
+	cudaMalloc((void**)&(mc_dPos), mc_maxVerts * sizeof(float) * 4);
+	cudaMalloc((void**)&(mc_dNormal), mc_maxVerts * sizeof(float) * 4);
+	// allocate textures
+	allocateTextures(&mc_edgeTable, &mc_triTable, &mc_numVertsTable);
+	// allocate device memory
+	memSize = sizeof(uint) * mc_numVoxels;
+	cudaMalloc((void**)&mc_dVoxelVerts, memSize);
+	cudaMalloc((void**)&mc_dVoxelVertsScan, memSize);
+	cudaMalloc((void**)&mc_dVoxelOccupied, memSize);
+	cudaMalloc((void**)&mc_dVoxelOccupiedScan, memSize);
+	cudaMalloc((void**)&mc_dCompVoxelArray, memSize);
+
+	/*------------------------------------------------------------------------------------*/
+	if (spawnMode)
 	{
+		tempProcess();
+	}
+	else 
+	{
+		int idx = 0;
+		float posX = 0;
+		float posY = 0;
+		float posZ = 0;
+
+		for (SIZE_T z = 0; z < sizeZ; z++)
+		{
 		for (SIZE_T y = 0; y < sizeY; y++)
 		{
 			for (SIZE_T x = 0; x < sizeX; x++)
@@ -366,18 +443,20 @@ void ASPHsystemWihCuda::initSystem()
 				posX = x * particleRadius * 2 - m_params.boundary.x/2;
 				posY = y * particleRadius * 2 - m_params.boundary.z/2;
 				posZ = z * particleRadius * 2 - m_params.boundary.y/2;
-
 				FVector pos = { posX, posY, posZ };
 				addParticleToCuda(idx,pos);
-				
-				particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * 100, mParticleScale));
+				particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 				idx++;
 			}
 		}
+		}
+
+		m_numFluidsParticles = idx;
 	}
 	
-	m_numFluidsParticles = idx;
-	//tempProcess();
+
+
+
 	m_numBoundaryParticles = 0;
 	m_totalParticles = m_maxFluidParticles + m_numBoundaryParticles;
 	//AddRigidySphere(boundaryR,{0,0,200});
@@ -419,6 +498,19 @@ void ASPHsystemWihCuda::finalize()
 	freeArray(m_dGridParticleIndex);
 	freeArray(m_dCellStart);
 	freeArray(m_dCellEnd);
+
+	//marchingCube
+	cudaFree(mc_dPos);
+	cudaFree(mc_dNormal);
+	destroyAllTextureObjects();
+	cudaFree(mc_edgeTable);
+	cudaFree(mc_triTable);
+	cudaFree(mc_dVoxelVerts);
+	cudaFree(mc_dVoxelVertsScan);
+	cudaFree(mc_dVoxelOccupied);
+	cudaFree(mc_dVoxelOccupiedScan);
+	cudaFree(mc_dCompVoxelArray);
+
 }
 
 void ASPHsystemWihCuda::step()
@@ -480,8 +572,179 @@ void ASPHsystemWihCuda::step()
 		m_maxFluidParticles,
 		m_numBoundarys.data());
 
-	updatePosition();
+	computeIsoface();
+	
+	createIsosurface();
+
+	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
+	//updatePosition();
+
+	
 	//if (!spawnEnd) SpawnFluidParticles({ 0,0,-40 });
+}
+
+void ASPHsystemWihCuda::computeIsoface()
+{
+	int threads = 128;
+	dim3 grid(mc_numVoxels / threads, 1, 1);
+
+	// get around maximum grid size of 65535 in each dimension
+	if (grid.x > 65535)
+	{
+		grid.y = grid.x / 32768;
+		grid.x = 32768;
+	}
+
+	// calculate number of vertices need per voxel
+	launch_classifyVoxel(grid, threads,
+		mc_dVoxelVerts, mc_dVoxelOccupied,
+		gridSize, gridSizeShift, gridSizeMask,
+		mc_numVoxels, mc_voxelSize, mc_isoValue, m_dSortedPos, m_dCellStart, m_dCellEnd,m_dGridParticleIndex);
+
+
+#if SKIP_EMPTY_VOXELS
+	ThrustScanWrapper(mc_dVoxelOccupiedScan, mc_dVoxelOccupied, mc_numVoxels);
+
+
+	// read back values to calculate total number of non-empty voxels
+	// since we are using an exclusive scan, the total is the last value of
+	// the scan result plus the last value in the input array
+	{
+		uint lastElement, lastScanElement;
+		cudaMemcpy((void*)&lastElement,
+			(void*)(mc_dVoxelOccupied + mc_numVoxels - 1),
+			sizeof(uint), cudaMemcpyDeviceToHost);
+		cudaMemcpy((void*)&lastScanElement,
+			(void*)(mc_dVoxelOccupiedScan + mc_numVoxels - 1),
+			sizeof(uint), cudaMemcpyDeviceToHost);
+
+		mc_activeVoxels = lastElement + lastScanElement;
+	}
+
+	if (mc_activeVoxels == 0)
+	{
+		// return if there are no full voxels
+		//UE_LOG(LogTemp, Log, TEXT("marchingCube verts : %d"), mc_totalVerts);
+		mc_totalVerts = 0;
+		return;
+	}
+
+	// compact voxel index array
+	launch_compactVoxels(grid, threads, mc_dCompVoxelArray, mc_dVoxelOccupied, mc_dVoxelOccupiedScan, mc_numVoxels);
+	//getLastCudaError("compactVoxels failed");
+#endif
+
+	ThrustScanWrapper(mc_dVoxelVertsScan, mc_dVoxelVerts, mc_numVoxels);
+
+#if DEBUG_BUFFERS
+	printf("voxelVertsScan:\n");
+	dumpBuffer(d_voxelVertsScan, numVoxels, sizeof(uint));
+#endif
+
+	// readback total number of vertices
+	{
+		uint lastElement, lastScanElement;
+		cudaMemcpy((void*)&lastElement,
+			(void*)(mc_dVoxelVerts + mc_numVoxels - 1),
+			sizeof(uint), cudaMemcpyDeviceToHost);
+		cudaMemcpy((void*)&lastScanElement,
+			(void*)(mc_dVoxelVertsScan + mc_numVoxels - 1),
+			sizeof(uint), cudaMemcpyDeviceToHost);
+
+		mc_totalVerts = lastElement + lastScanElement;
+	}
+
+	// generate triangles, writing to vertex buffers
+	//size_t num_bytes;
+	// DEPRECATED: checkCudaErrors(cudaGLMapBufferObject((void**)&d_pos, posVbo));
+	//checkCudaErrors(cudaGraphicsMapResources(1, &cuda_posvbo_resource, 0));
+	//checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_pos, &num_bytes, cuda_posvbo_resource));
+
+	// DEPRECATED: checkCudaErrors(cudaGLMapBufferObject((void**)&d_normal, normalVbo));
+	//checkCudaErrors(cudaGraphicsMapResources(1, &cuda_normalvbo_resource, 0));
+	//checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_normal, &num_bytes, cuda_normalvbo_resource));
+
+#if SKIP_EMPTY_VOXELS
+	dim3 grid2((int)ceil(mc_activeVoxels / (float)NTHREADS), 1, 1);
+#else
+	dim3 grid2((int)ceil(mc_numVoxels / (float)NTHREADS), 1, 1);
+#endif
+
+	while (grid2.x > 65535)
+	{
+		grid2.x /= 2;
+		grid2.y *= 2;
+	}
+
+	launch_generateTriangles(grid2, NTHREADS, mc_dPos, mc_dNormal,
+		mc_dCompVoxelArray,
+		mc_dVoxelVertsScan,
+		gridSize, gridSizeShift, gridSizeMask,
+		mc_voxelSize, mc_isoValue, mc_activeVoxels, mc_maxVerts,
+		(float4*)m_dSortedPos, m_dCellStart, m_dCellEnd, m_dGridParticleIndex);
+
+	// DEPRECATED:      checkCudaErrors(cudaGLUnmapBufferObject(normalVbo));
+	//checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_normalvbo_resource, 0));
+	// DEPRECATED:      checkCudaErrors(cudaGLUnmapBufferObject(posVbo));
+	//checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_posvbo_resource, 0));
+	//UE_LOG(LogTemp, Log, TEXT("done computeIsoface : %d"), mc_totalVerts);
+}
+
+void ASPHsystemWihCuda::createIsosurface()
+{
+	ParticleProceduralMeshComponent->ClearAllMeshSections();
+
+	cudaMemcpy(mc_hPos, mc_dPos, sizeof(float) * 4 * mc_maxVerts, cudaMemcpyDeviceToHost);
+	cudaMemcpy(mc_hNormal,mc_dNormal, sizeof(float) * 4 * mc_maxVerts, cudaMemcpyDeviceToHost);
+
+	Vertices.Empty();
+	Triangles.Empty();
+	Uv0.Empty();
+
+	Vertices.Reserve(mc_maxVerts);
+	Triangles.Reserve(mc_maxVerts);
+	Uv0.Reserve(mc_maxVerts);
+
+	for (uint32 i = 0; i < mc_totalVerts / 3u; ++i)
+	{
+		Vertices.Add(FVector(mc_hPos[3*i].x, mc_hPos[3*i].z, mc_hPos[3*i].y ) * scaleCorrectedValue);
+		Vertices.Add(FVector(mc_hPos[3 * i + 1].x, mc_hPos[3 * i + 1].z, mc_hPos[3 * i + 1].y ) * scaleCorrectedValue);
+		Vertices.Add(FVector(mc_hPos[3 * i + 2].x, mc_hPos[3 * i + 2].z, mc_hPos[3 * i + 2].y ) * scaleCorrectedValue);
+
+		Triangles.Add(static_cast<int32>(3 * i + 2));
+		Triangles.Add(static_cast<int32>(3 * i + 1));
+		Triangles.Add(static_cast<int32>(3 * i + 0));
+		
+		Uv0.Add(FVector2D(-mc_hPos[3 * i].x / 2.0f, -mc_hPos[3 * i].y / 2.0f));
+		Uv0.Add(FVector2D(-mc_hPos[3 * i + 1].x / 2.0f, -mc_hPos[3 * i + 1].y / 2.0f));
+		Uv0.Add(FVector2D(-mc_hPos[3 * i + 2].x / 2.0f, -mc_hPos[3 * i + 2].y / 2.0f));
+		
+		Normals.Add(FVector(-mc_hPos[3 * i].x, -mc_hPos[3 * i].z, -mc_hPos[3 * i].y));
+		Normals.Add(FVector(-mc_hPos[3 * i + 1].x, -mc_hPos[3 * i + 1].z, -mc_hPos[3 * i + 1].y));
+		Normals.Add(FVector(-mc_hPos[3 * i + 2].x, -mc_hPos[3 * i + 2].z, -mc_hPos[3 * i + 2].y));
+	}
+
+	//Vertices.Add(FVector(0, 0, 0));
+	//Vertices.Add(FVector(0, 100, 0));
+	//Vertices.Add(FVector(0, 0, 100));
+	//Triangles.Add(0);
+	//Triangles.Add(1);
+	//Triangles.Add(2);
+
+	//Normals.Add(FVector(1, 0, 0));
+	//Normals.Add(FVector(1, 0, 0));
+	//Normals.Add(FVector(1, 0, 0));
+
+	//Uv0.Add(FVector2D(0, 0));
+	//Uv0.Add(FVector2D(10, 0));
+	//Uv0.Add(FVector2D(0, 10));
+
+	
+	ParticleProceduralMeshComponent->CreateMeshSection(0, Vertices, Triangles, Normals, Uv0, VertexColors, Tangents, false);
+	if (machingCubeMaterial != nullptr)
+	{
+		ParticleProceduralMeshComponent->SetMaterial(0,machingCubeMaterial);
+	}
 }
 
 void ASPHsystemWihCuda::updateRigidyPosition()
@@ -499,7 +762,7 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 
 		m_rigidyPos[count] = (rigidyActors[count]->GetActorTransform().GetLocation() - GetActorLocation());
 
-		m_rigidyMovingPos[count] = FVectorToFloat3((m_rigidyPos[count] - prePos) / 100);
+		m_rigidyMovingPos[count] = FVectorToFloat3((m_rigidyPos[count] - prePos) / scaleCorrectedValue);
 
 		FVector sumVel = {0,0,0};
 
@@ -508,9 +771,10 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 			//if(count==0) break;
 			sumVel += (FVector(m_hVel[i * 4], m_hVel[i * 4 + 2], m_hVel[i * 4 + 1]));
 		}
+
 		sumVel /= m_numBoundarys[count];
 
-		rigidyActors[count]->setVelocity((sumVel )* 100 *1/timeC * m_params.timeStep);
+		rigidyActors[count]->setVelocity((sumVel )*scaleCorrectedValue *1/timeC * m_params.timeStep);
 
 		m_rigidyVel[count] = FVectorToFloat3(sumVel);
 		//m_rigidyVel[count] = FVectorToFloat3(rigidyActors[count]->GetVelocity()/100 * timeC /m_params.timeStep);
@@ -529,25 +793,25 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 void ASPHsystemWihCuda::updatePosition()
 {
 	FVector pos;
-	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
+	//copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
 	for (size_t i = 0; i < m_numFluidsParticles; i++)
 	{
-		pos = FVector(m_hPos[i*4] * 100, m_hPos[i * 4+2]*100, m_hPos[i * 4 + 1]*100);
+		pos = FVector(m_hPos[i*4] * scaleCorrectedValue, m_hPos[i * 4+2]*scaleCorrectedValue,m_hPos[i * 4 + 1]* scaleCorrectedValue);
 		particles->UpdateInstanceTransform(i, FTransform(FRotator::ZeroRotator,pos, mParticleScale));
 	}
 
 	int last = m_numFluidsParticles - 1;
-	pos = FVector(m_hPos[last * 4]*100, m_hPos[last * 4 + 2]*100, m_hPos[last * 4 + 1]*100);
+	pos = FVector(m_hPos[last * 4]* scaleCorrectedValue, m_hPos[last * 4 + 2]* scaleCorrectedValue, m_hPos[last * 4 + 1]* scaleCorrectedValue);
 	particles->UpdateInstanceTransform(last, FTransform(FRotator::ZeroRotator, pos, mParticleScale), false, true);
 
 	for (size_t i = m_maxFluidParticles; i < m_totalParticles; i++)
 	{
-		pos = FVector(m_hPos[i * 4] * 100, m_hPos[i * 4 + 2] * 100, m_hPos[i * 4 + 1] * 100);
+		pos = FVector(m_hPos[i * 4] * scaleCorrectedValue, m_hPos[i * 4 + 2] * scaleCorrectedValue, m_hPos[i * 4 + 1] * scaleCorrectedValue);
 		bparticles->UpdateInstanceTransform(i- m_maxFluidParticles, FTransform(FRotator::ZeroRotator, pos, mParticleScale));
 	}
 
 	last = m_totalParticles - 1;
-	pos = FVector(m_hPos[last * 4] * 100, m_hPos[last * 4 + 2] * 100, m_hPos[last * 4 + 1] * 100);
+	pos = FVector(m_hPos[last * 4] * scaleCorrectedValue, m_hPos[last * 4 + 2] * scaleCorrectedValue, m_hPos[last * 4 + 1] * scaleCorrectedValue);
 	bparticles->UpdateInstanceTransform(last- m_maxFluidParticles, FTransform(FRotator::ZeroRotator, pos, mParticleScale), false, true);
 
 
@@ -567,6 +831,7 @@ void ASPHsystemWihCuda::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	timeC = DeltaTime;
+	//m_params.unrealDeltaTime = DeltaTime;
 	//if (timeC < timeStep) return;	
 	//timeC = 0.0f;
 	step();
