@@ -1,46 +1,51 @@
-# SPH with unreal
+# Real-time fluid simmulation in Unreal using smooth-particle hydrodynamics techniques (2021 SW Capstone Design)
  
- 
-SPH Formulation
 
-![image](https://user-images.githubusercontent.com/50435598/146800321-243d21dc-17c9-42b5-a770-17fffdf6a77e.png)
+## SPH <sup>[1](#footnote_1)</sup><sup>[3](#footnote_3)</sup> 
+### Basic SPH Formulation
+![image](https://user-images.githubusercontent.com/50435598/147324832-45ac5f63-0c88-4054-9e64-526e56135ca9.png)
 
 
-Fluid Dynamic
-![image](https://user-images.githubusercontent.com/50435598/146800406-2661fbfa-234c-4d29-a79a-65d03529b6f4.png)
+### Fluid Dynamic
+![image](https://user-images.githubusercontent.com/50435598/147325852-b65b7147-0bba-4908-8e9e-07b83e79803b.png)
 
-SPH[1][2]
-![image](https://user-images.githubusercontent.com/50435598/146800485-d4383001-8278-4e40-9fb9-f8383aa3860d.png)
+### MassDensity and Pressure 
+![image](https://user-images.githubusercontent.com/50435598/147324872-d26a6a3f-50fb-4e5c-9040-d0cda2c6d4ce.png)
 
-![image](https://user-images.githubusercontent.com/50435598/146800549-840f301b-9ce1-4d20-bc18-9553251f6594.png)
+### Internal Force
+![image](https://user-images.githubusercontent.com/50435598/147324903-0dabfdd5-163d-413c-bc58-968c45e0098c.png)
 
-![image](https://user-images.githubusercontent.com/50435598/146825312-49674dec-b571-4ba1-88a0-a9c199060165.png)
+### Exteranl Force
+![image](https://user-images.githubusercontent.com/50435598/147324983-bf69dae9-de99-4482-ab1b-804ea878f4c1.png)
 
-Kernel
 
-![image](https://user-images.githubusercontent.com/50435598/146825414-4e440801-0409-4324-bd3d-5024c490d41b.png)
+### Smoothing Kernel
+![image](https://user-images.githubusercontent.com/50435598/147325055-c894f39c-432c-405d-b41e-e039ec547360.png)
 
-![image](https://user-images.githubusercontent.com/50435598/146825444-97d23c03-266e-4a91-806b-0a1db7f5fc58.png)
+![image](https://user-images.githubusercontent.com/50435598/147325091-d62d48e1-c569-492b-84db-c23ca320b812.png)
 
-![image](https://user-images.githubusercontent.com/50435598/146825718-bd9759b7-3eb1-4025-a076-2393fd266033.png)
+![image](https://user-images.githubusercontent.com/50435598/147325111-08f045b6-e280-4e51-b77b-42dc026a4d52.png)
 
-Boundary Handling
-![image](https://user-images.githubusercontent.com/50435598/146829339-3c712b42-aa9b-4261-9c91-95c771a6f754.png)
 
-WCSPH
-![image](https://user-images.githubusercontent.com/50435598/146829398-ea43a985-6313-473c-a9af-a6432c1a54fb.png)
+## Boundary Handling<sup>[4](#footnote_4)</sup>
+![image](https://user-images.githubusercontent.com/50435598/147325360-ec1e828d-630f-4c0e-86bb-36fbca9ad4ee.png)
 
-Result
 
+## WCSPH<sup>[5](#footnote_5)</sup>
+![image](https://user-images.githubusercontent.com/50435598/147325413-5cbaacb7-11f0-4527-b72a-6a59b9418a8f.png)
+
+
+## Result gif
 ![ezgif com-gif-maker (14)](https://user-images.githubusercontent.com/50435598/147320960-b7167879-8d66-43bc-a3b7-ab531ecf4718.gif)
 
 ![ezgif com-gif-maker (10)](https://user-images.githubusercontent.com/50435598/147320971-bb61b287-c46e-451f-a58e-09b0e9121ae9.gif)
 
 
 References
-1. M. Müller, D. Charypar, and M. Gross. Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, pages 154–159, 2003.
-2. Koschier, Dan, Jan Bender, Barbara Solenthaler, and Matthias Teschner. "Smoothed particle hydrodynamics techniques for the physics based simulation of fluids and solids." arXiv preprint arXiv:2009.06944 (2020).
-3. David Staubach , "Smoothed Particle Hydrodynamics Real-Time Fluid Simulation Approach." Friedrich-Alexander-Universitaet Erlangen-Nuernberg (2010).
-4.Nadir Akinci, Markus Ihmsen, Gizem Akinci, Barbara Solenthaler and Matthias Teshner "Versatile rigid-fluid coupling for incompressible SPH." ACM Transactions on GraphicsVolume 31Issue 4July 2012 Article No.: 62pp 1– (2012).
-5. Markus Becker and Matthias Teschner. "Weakly Compressible SPH for Free Surface Flows." Proceedings of the 2007 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, SCA 2007, San Diego, California, USA, August 2-4, 2007
-
+<ol>
+<li id="footnote_1"> M. Müller, D. Charypar, and M. Gross. Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, pages 154–159, 2003.</li>
+<li id="footnote_2">  Koschier, Dan, Jan Bender, Barbara Solenthaler, and Matthias Teschner. "Smoothed particle hydrodynamics techniques for the physics based simulation of fluids and solids." arXiv preprint arXiv:2009.06944 (2020).</li>
+<li id="footnote_3"> David Staubach , "Smoothed Particle Hydrodynamics Real-Time Fluid Simulation Approach." Friedrich-Alexander-Universitaet Erlangen-Nuernberg (2010).</li>
+<li id="footnote_4"> Nadir Akinci, Markus Ihmsen, Gizem Akinci, Barbara Solenthaler and Matthias Teshner "Versatile rigid-fluid coupling for incompressible SPH." ACM Transactions on GraphicsVolume 31Issue 4July 2012 Article No.: 62pp 1– (2012).</li>
+<li id="footnote_5"> Markus Becker and Matthias Teschner. "Weakly Compressible SPH for Free Surface Flows." Proceedings of the 2007 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, SCA 2007, San Diego, California, USA, August 2-4, 2007. </li>
+</ol>
