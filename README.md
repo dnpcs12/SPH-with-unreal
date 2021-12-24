@@ -9,7 +9,7 @@
 ### Fluid Dynamic
 ![image](https://user-images.githubusercontent.com/50435598/147325852-b65b7147-0bba-4908-8e9e-07b83e79803b.png)
 
-### MassDensity and Pressure 
+### Mass-density and Pressure 
 ![image](https://user-images.githubusercontent.com/50435598/147324872-d26a6a3f-50fb-4e5c-9040-d0cda2c6d4ce.png)
 
 ### Internal Force
