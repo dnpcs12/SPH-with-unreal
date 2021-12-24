@@ -1,10 +1,9 @@
 # Real-time fluid simmulation in Unreal using smooth-particle hydrodynamics techniques (2021 SW Capstone Design)
- 
+
 
 ## SPH <sup>[1](#footnote_1)</sup><sup>[3](#footnote_3)</sup> 
 ### Basic SPH Formulation
 ![image](https://user-images.githubusercontent.com/50435598/147324832-45ac5f63-0c88-4054-9e64-526e56135ca9.png)
-
 
 ### Fluid Dynamic
 ![image](https://user-images.githubusercontent.com/50435598/147325852-b65b7147-0bba-4908-8e9e-07b83e79803b.png)
@@ -26,6 +25,9 @@
 
 ![image](https://user-images.githubusercontent.com/50435598/147325111-08f045b6-e280-4e51-b77b-42dc026a4d52.png)
 
+## Parallel programming using CUDA 
+To render over 10,000 particles, implemented parallel programming using CUDA.
+<a href="https://developer.nvidia.com/cuda-code-samples">CUDA sample code</a> was referenced for implementation, and it was created as a lib and linked with Unreal.
 
 ## Boundary Handling<sup>[4](#footnote_4)</sup>
 ![image](https://user-images.githubusercontent.com/50435598/147325360-ec1e828d-630f-4c0e-86bb-36fbca9ad4ee.png)
@@ -34,10 +36,14 @@
 ## WCSPH<sup>[5](#footnote_5)</sup>
 ![image](https://user-images.githubusercontent.com/50435598/147325413-5cbaacb7-11f0-4527-b72a-6a59b9418a8f.png)
 
-## MarchingCube
+## Marching Cube Algorithm for Visulazation
 Marching cubes is a computer graphics algorithm, published in the 1987 SIGGRAPH proceedings by Lorensen and Cline,[1] for extracting a polygonal mesh of an isosurface from a three-dimensional discrete scalar field (the elements of which are sometimes called voxels). <sup>[7](#footnote_6)</sup>
 
+### Rendering with Marching Cube 
+![ezgif com-gif-maker (12)](https://user-images.githubusercontent.com/50435598/147327119-8ecce1c4-400a-4d7a-a410-5aedace595ad.gif)
 
+### Before
+![ezgif com-gif-maker (13)](https://user-images.githubusercontent.com/50435598/147327148-0b347e46-270f-49c6-9d45-4e0c133e26ee.gif)
 
 
 ## Result gif
