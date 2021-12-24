@@ -9,7 +9,7 @@ SPH Formulation
 Fluid Dynamic
 ![image](https://user-images.githubusercontent.com/50435598/146800406-2661fbfa-234c-4d29-a79a-65d03529b6f4.png)
 
-SPH
+SPH[1][2]
 ![image](https://user-images.githubusercontent.com/50435598/146800485-d4383001-8278-4e40-9fb9-f8383aa3860d.png)
 
 ![image](https://user-images.githubusercontent.com/50435598/146800549-840f301b-9ce1-4d20-bc18-9553251f6594.png)
@@ -30,6 +30,12 @@ Boundary Handling
 WCSPH
 ![image](https://user-images.githubusercontent.com/50435598/146829398-ea43a985-6313-473c-a9af-a6432c1a54fb.png)
 
+Result
+
+![ezgif com-gif-maker (14)](https://user-images.githubusercontent.com/50435598/147320960-b7167879-8d66-43bc-a3b7-ab531ecf4718.gif)
+
+![ezgif com-gif-maker (10)](https://user-images.githubusercontent.com/50435598/147320971-bb61b287-c46e-451f-a58e-09b0e9121ae9.gif)
+
 
 References
 1. M. Müller, D. Charypar, and M. Gross. Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, pages 154–159, 2003.
@@ -37,3 +43,4 @@ References
 3. David Staubach , "Smoothed Particle Hydrodynamics Real-Time Fluid Simulation Approach." Friedrich-Alexander-Universitaet Erlangen-Nuernberg (2010).
 4.Nadir Akinci, Markus Ihmsen, Gizem Akinci, Barbara Solenthaler and Matthias Teshner "Versatile rigid-fluid coupling for incompressible SPH." ACM Transactions on GraphicsVolume 31Issue 4July 2012 Article No.: 62pp 1– (2012).
 5. Markus Becker and Matthias Teschner. "Weakly Compressible SPH for Free Surface Flows." Proceedings of the 2007 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, SCA 2007, San Diego, California, USA, August 2-4, 2007
+
