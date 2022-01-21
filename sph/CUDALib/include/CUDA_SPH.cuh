@@ -1,6 +1,7 @@
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "helper_math.h"
 #include "Parameter.cuh"
 #include "defines.h"
 
@@ -21,8 +22,10 @@ extern "C"
     void integrateSystem(float* pos,
         float* vel,
         uint rigidyCount,
-        float3* rigidyMovePos,
+        float3* rigidyPos,
         float3* rigidyVel,
+        float4* rigidyPreRotation,
+        float4* rigidyCurRotation,
         uint numFluidParticles,
         uint boundaryStartIndex,
         uint* numBoundaryParticles);

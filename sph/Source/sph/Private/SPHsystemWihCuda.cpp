@@ -167,6 +167,129 @@ void ASPHsystemWihCuda::AddRigidyCylinder(float r, int height, FVector initpos)
 	m_numBoundarys.push_back(bCount);
 }
 
+
+void ASPHsystemWihCuda::AddRigidyCube(float x, float y, float z, FVector initpos)
+{
+	addrigidy(initpos);
+	
+	unsigned int bCount = 0;
+
+	int cX = ceil(x / 4 * 100);
+	int cY = ceil(y / 4 * 100);
+	int cZ = ceil(z / 4 * 100);
+	
+	//UE_LOG(LogTemp, Log, TEXT("%d %d %d"), cX, cY,cZ);
+
+	float spaceX = x / cX; 
+	float spaceY = y / cY;
+	float spaceZ = z / cZ;
+
+	//큐브의 겉면에만 파티클을 만듦.
+
+	//위, 아래
+	for (int i = 0; i < cX; i++)
+	{
+		for (int j = 0; j < cY; j++)
+		{
+		
+			FVector pos = { -(int)(cX/2.0f)* spaceX + i * spaceX ,-(int)(cY/2.0f) * spaceY + spaceY * j, -(int)(cZ/2.0f) * spaceZ};
+			FVector counterPos = {pos.X,pos.Y,-pos.Z };
+			pos += initpos * (1 / scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+			
+			pos = counterPos;
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+
+	//옆면 , x
+	for (int i = 0; i < cY; i++)
+	{
+		for (int j = 0; j < cZ; j++)
+		{
+
+			FVector pos = { -(int)(cX / 2.0f) * spaceX ,-(int)(cY / 2.0f) * spaceY + spaceY * i, -(int)(cZ / 2.0f) * spaceZ + j * spaceZ };
+			FVector counterPos = {-pos.X,pos.Y,pos.Z};
+			
+			pos += initpos * (1 / scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+
+			pos = counterPos;
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+
+
+	//옆면 , y
+	for (int i = 0; i < cX; i++)
+	{
+		for (int j = 0; j < cZ; j++)
+		{
+
+			FVector pos = { -(int)(cX / 2.0f) * spaceX + i * spaceX ,-(int)(cY / 2.0f) * spaceY, -(int)(cZ / 2.0f) * spaceZ + j * spaceZ };
+			FVector counterPos = {pos.X,-pos.Y,pos.Z };
+			pos += initpos * (1 / scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+			
+			pos = counterPos;
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
+	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
+
+
+	computeBoundaryVolume(m_dBoundaryVolume, m_dPos, m_maxFluidParticles, m_numBoundaryParticles, bCount);
+
+	m_numBoundaryParticles += bCount;
+	m_totalParticles += bCount;
+	m_numBoundarys.push_back(bCount);
+
+}
+
+void ASPHsystemWihCuda::AddWheel(float r, FVector initpos)
+{
+	addrigidy(initpos);
+    unsigned int bCount = 0u;
+	float angle = 360 / 10;
+	for (float i = 0; i < 360; i += angle)
+	{
+		addsubWheel(bCount, 0.25f, 0.15f, 0.03f, initpos, i, r);
+		FVector rPos = {r,0,0};
+		rPos = rPos.RotateAngleAxis(i,{0,1,0});
+		UE_LOG(LogTemp, Log, TEXT("{%f %f %f}"), rPos.X, rPos.Y, rPos.Z);
+	}
+
+	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
+	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
+
+	computeBoundaryVolume(m_dBoundaryVolume, m_dPos, m_maxFluidParticles, m_numBoundaryParticles, bCount);
+
+	m_numBoundaryParticles += bCount;
+	m_totalParticles += bCount;
+	m_numBoundarys.push_back(bCount);
+
+}
+
+
 void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 {
 	
@@ -190,7 +313,7 @@ void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 			posZ = y * particleRadius * 2;
 			FVector pos = { posX, posY, posZ };
 			pos += initpos * (1/ scaleCorrectedValue);
-			addParticleToCuda(m_numFluidsParticles, pos,{10,0,-3});
+			addParticleToCuda(m_numFluidsParticles, pos,{5,0,-1});
 			particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			m_numFluidsParticles++;
 			if (m_numFluidsParticles >= m_maxFluidParticles)
@@ -214,7 +337,12 @@ void ASPHsystemWihCuda::ResistRigidy(AMyStaticMeshActor* rigidyActor, int type)
 	rigidyActors.Add(rigidyActor);
 	FTransform actorT = rigidyActor->GetActorTransform();
 	
-	if (type == 2)
+	if(type==1)
+	{
+		AddRigidySphere(actorT.GetScale3D().X / 2, actorT.GetLocation() - GetActorLocation());
+	}
+
+	else if (type == 2)
 	{
 		AddRigidyHemisphere(actorT.GetScale3D().X , actorT.GetLocation() - GetActorLocation(), true);
 	}
@@ -227,10 +355,6 @@ void ASPHsystemWihCuda::ResistRigidy(AMyStaticMeshActor* rigidyActor, int type)
 	{
 		int height = actorT.GetScale3D().Z /(particleRadius*2);
 		AddRigidyCylinder(actorT.GetScale3D().X + 0.03f, 12, actorT.GetLocation() - GetActorLocation());
-	}
-	else
-	{
-		AddRigidySphere(actorT.GetScale3D().X /2, actorT.GetLocation() - GetActorLocation());
 	}
 
 }
@@ -250,13 +374,18 @@ void ASPHsystemWihCuda::ResetFluidPosition()
 				posX = x * particleRadius * 2 - m_params.boundary.x / 2;
 				posY = y * particleRadius * 2 - m_params.boundary.z / 2;
 				posZ = z * particleRadius * 2 - m_params.boundary.y / 2;
-				i++;
 				addParticleToCuda(i, {posX,posY,posZ});
+				i++;
 			}
 		}
 	}
 	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
 	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
+}
+
+void ASPHsystemWihCuda::OnOffSpawn()
+{
+	isSpawning = !isSpawning;
 }
 
 // Called when the game starts or when spawned
@@ -298,9 +427,10 @@ void ASPHsystemWihCuda::tempProcess()
 void ASPHsystemWihCuda::addrigidy(FVector initpos)
 {
 	m_rigidyCount++;
-	m_rigidyMovingPos.push_back({ 0,0,0 });
 	m_rigidyVel.push_back({ 0,0,0 });
-	m_rigidyPos.push_back(initpos);
+	m_rigidyPos.push_back(FVectorToFloat3(initpos/scaleCorrectedValue));
+	m_rigidyPreRotation.push_back({0,0,0,0});
+	m_rigidyCurRotation.push_back({0,0,0,0});
 }
 
 float3 ASPHsystemWihCuda::FVectorToFloat3(FVector vec)
@@ -322,6 +452,107 @@ void ASPHsystemWihCuda::addParticleToCuda(uint index, FVector pos, FVector vel)
 	m_hVel[index * 4 + 3] = 0.0f;
 }
 
+void ASPHsystemWihCuda::addsubWheel(unsigned int& bCount, float x, float y, float z, FVector initpos, float angle, float r)
+{
+
+	int cX = ceil(x / 4 * 100);
+	int cY = ceil(y / 4 * 100);
+	int cZ = ceil(z / 4 * 100);
+
+	//UE_LOG(LogTemp, Log, TEXT("%d %d %d"), cX, cY,cZ);
+
+	float spaceX = x / cX;
+	float spaceY = y / cY;
+	float spaceZ = z / cZ;
+
+	//큐브의 겉면에만 파티클을 만듦.
+
+	//위, 아래
+	for (int i = 0; i < cX; i++)
+	{
+		for (int j = 0; j < cY; j++)
+		{
+
+			FVector pos = { -(int)(cX / 2.0f) * spaceX + i * spaceX ,-(int)(cY / 2.0f) * spaceY + spaceY * j, -(int)(cZ / 2.0f) * spaceZ };
+			FVector counterPos = { pos.X,pos.Y,-pos.Z };
+			pos += {r,0,0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+			pos += initpos * (1 / scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+
+			pos = counterPos;
+			pos += {r, 0, 0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+
+			pos += initpos * (1 / scaleCorrectedValue);
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+
+	//옆면 , x
+	for (int i = 0; i < cY; i++)
+	{
+		for (int j = 0; j < cZ; j++)
+		{
+
+			FVector pos = { -(int)(cX / 2.0f) * spaceX ,-(int)(cY / 2.0f) * spaceY + spaceY * i, -(int)(cZ / 2.0f) * spaceZ + j * spaceZ };
+			FVector counterPos = { -pos.X,pos.Y,pos.Z };
+
+			pos += {r, 0, 0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+
+			pos = counterPos;
+			pos += {r, 0, 0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+			pos += initpos * (1 / scaleCorrectedValue);
+
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+
+
+	//옆면 , y
+	for (int i = 0; i < cX; i++)
+	{
+		for (int j = 0; j < cZ; j++)
+		{
+
+			FVector pos = { -(int)(cX / 2.0f) * spaceX + i * spaceX ,-(int)(cY / 2.0f) * spaceY, -(int)(cZ / 2.0f) * spaceZ + j * spaceZ };
+			FVector counterPos = { pos.X,-pos.Y,pos.Z };
+
+			pos += {r, 0, 0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+
+			pos = counterPos;
+			pos += {r, 0, 0};
+			pos = pos.RotateAngleAxis(angle, { 0,1,0 });
+			pos += initpos * (1 / scaleCorrectedValue);
+
+			bparticles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+			addParticleToCuda(m_totalParticles + bCount, pos);
+			bCount++;
+		}
+	}
+
+}
+
 void ASPHsystemWihCuda::initSystem()
 {
 	m_gridSize = make_uint3(64, 64, 64);
@@ -332,12 +563,13 @@ void ASPHsystemWihCuda::initSystem()
 	UE_LOG(LogTemp, Log, TEXT("%f "), particleRadius);
 	mParticleScale = FVector(particleRadius * 2, particleRadius * 2, particleRadius * 2);
 	m_params.particleRadius = particleRadius;
+	
 	m_params.boundary = FVectorToFloat3(boundary*(1/ scaleCorrectedValue));
-	m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
-
+	m_params.worldOrigin = FVectorToFloat3(-boundary * (1 / scaleCorrectedValue));//make_float3(-1.0f,-1.0f,-1.0f);
 	float cellSize = m_params.particleRadius * 2.0f;//supportRadius;//m_params.particleRadius * 2.0f;
-	m_params.cellSize = make_float3(cellSize, cellSize, cellSize);
-
+	//m_params.cellSize = make_float3(cellSize,cellSize,cellSize);
+	m_params.cellSize = make_float3((boundary.X ) * 3.0f / scaleCorrectedValue / 64, (boundary.Z ) * 3.0f / scaleCorrectedValue / 64, (boundary.Y ) * 3.0f / scaleCorrectedValue / 64);
+	
 	//두 그리드를 일치시킴.
 	mc_voxelSize = m_params.cellSize;
 	
@@ -445,7 +677,8 @@ void ASPHsystemWihCuda::initSystem()
 				posZ = z * particleRadius * 2 - m_params.boundary.y/2;
 				FVector pos = { posX, posY, posZ };
 				addParticleToCuda(idx,pos);
-				particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
+				if(!renderMarchingCube)
+					particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 				idx++;
 			}
 		}
@@ -460,7 +693,7 @@ void ASPHsystemWihCuda::initSystem()
 	m_numBoundaryParticles = 0;
 	m_totalParticles = m_maxFluidParticles + m_numBoundaryParticles;
 	//AddRigidySphere(boundaryR,{0,0,200});
-
+	//AddWheel(0.3f,rigidyActors[0]->GetActorTransform().GetLocation() - GetActorLocation());
 	//bnum = bCount;
 
 	test = true;
@@ -566,21 +799,24 @@ void ASPHsystemWihCuda::step()
 		m_dPos,
 		m_dVel,
 		m_rigidyCount,
-		m_rigidyMovingPos.data(),
+		m_rigidyPos.data(),
 		m_rigidyVel.data(),
+		m_rigidyPreRotation.data(),
+		m_rigidyCurRotation.data(),
 		m_numFluidsParticles,
 		m_maxFluidParticles,
 		m_numBoundarys.data());
-
 	computeIsoface();
-	
+
 	createIsosurface();
 
 	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
-	//updatePosition();
 
-	
-	//if (!spawnEnd) SpawnFluidParticles({ 0,0,-40 });
+	if(!renderMarchingCube)
+	{
+		updatePosition();
+	}
+		
 }
 
 void ASPHsystemWihCuda::computeIsoface()
@@ -752,34 +988,64 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 	//FVector pos = bparticles->GetRelativeLocation();
 
 	copyArrayFromDevice(m_hVel, m_dVel, sizeof(float) * 4 * m_maxParticles);
+	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
+
 	size_t start = m_maxFluidParticles;
 	size_t end = m_maxFluidParticles;
 	for (size_t count = 0; count < m_rigidyCount; count++)
 	{
 
 		end += m_numBoundarys[count];
-		FVector prePos = m_rigidyPos[count];
+		float3 prePos = m_rigidyPos[count];
+		//FVector preRotation = {m_rigidyRotation[count].x,m_rigidyRotation[count].z,m_rigidyRotation[count].y};
 
-		m_rigidyPos[count] = (rigidyActors[count]->GetActorTransform().GetLocation() - GetActorLocation());
+		m_rigidyPos[count] = FVectorToFloat3(rigidyActors[count]->GetActorTransform().GetLocation() - GetActorLocation())/scaleCorrectedValue;
+		m_rigidyVel[count] = (m_rigidyPos[count] - prePos) /*/ scaleCorrectedValue */ / m_params.timeStep; //FVectorToFloat3(sumVel);
+		FRotator curRotation = rigidyActors[count]->GetActorRotation();
+		FQuat q = curRotation.Quaternion();
 
-		m_rigidyMovingPos[count] = FVectorToFloat3((m_rigidyPos[count] - prePos) / scaleCorrectedValue);
+		//UE_LOG(LogTemp, Log, TEXT("euler : %f %f %f"), q.Euler().X, q.Euler().Y, q.Euler().Z);
+		m_rigidyPreRotation[count] = {-m_rigidyCurRotation[count].x,-m_rigidyCurRotation[count].y,-m_rigidyCurRotation[count].z,m_rigidyCurRotation[count].w};
+		m_rigidyCurRotation[count] = {q.X,q.Z,q.Y,q.W};//make_float3(curRotation.Roll, curRotation.Yaw, curRotation.Pitch);
+		//m_rigidyRotation[count] =  make_float3(curRotation.Roll, curRotation.Yaw,curRotation.Pitch) - m_rigidyRotation[count]; //{0,0,1.0f};
+		//UE_LOG(LogTemp, Log, TEXT("cur angular : %f %f %f"), curRotation.Roll, curRotation.Pitch, curRotation.Yaw);
+		//UE_LOG(LogTemp, Log, TEXT("pre - cur angular: %f %f %f"), m_rigidyRotation[count].x, m_rigidyRotation[count].y, m_rigidyRotation[count].z);
+
 
 		FVector sumVel = {0,0,0};
-
+		FVector sumTorque = {0,0,0};
+		float sumDiff = 0.0f;
 		for (size_t i = start; i < end; i++)
 		{
 			//if(count==0) break;
-			sumVel += (FVector(m_hVel[i * 4], m_hVel[i * 4 + 2], m_hVel[i * 4 + 1]));
+			FVector vel = FVector(m_hVel[i * 4], m_hVel[i * 4 + 2], m_hVel[i * 4 + 1]);
+			sumVel += vel;
+			FVector diff = FVector(m_hPos[i * 4] - m_rigidyPos[count].x, 
+								   m_hPos[i * 4 + 2] - m_rigidyPos[count].z, 
+								   m_hPos[i * 4 + 1] - m_rigidyPos[count].y);
+
+			sumDiff += (diff.X * diff.X + diff.Y *diff.Y + diff.Z * diff.Z);
+			sumTorque += FVector::CrossProduct(diff,vel);
 		}
-
-		sumVel /= m_numBoundarys[count];
-
-		rigidyActors[count]->setVelocity((sumVel )*scaleCorrectedValue *1/timeC * m_params.timeStep);
-
-		m_rigidyVel[count] = FVectorToFloat3(sumVel);
-		//m_rigidyVel[count] = FVectorToFloat3(rigidyActors[count]->GetVelocity()/100 * timeC /m_params.timeStep);
 		
-		UE_LOG(LogTemp, Log, TEXT("%d : %f %f %f"), count,m_rigidyVel[count].x, m_rigidyVel[count].z, m_rigidyVel[count].y);
+		sumVel /= m_numBoundarys[count];
+		sumTorque /= m_numBoundarys[count];
+		sumTorque /= sumDiff;
+		//sumTorque = {0.01f,0.01f,0.01f};
+		
+		//rigidyActors[count]->setAngularVelocity(FVector{0,0.01f,0} * scaleCorrectedValue / m_params.unrealDeltaTime * m_params.timeStep);
+
+		rigidyActors[count]->setVelocity((sumVel )*scaleCorrectedValue  / m_params.unrealDeltaTime * m_params.timeStep);
+		rigidyActors[count]->setAngularVelocity(sumTorque * 100 *100 / m_params.unrealDeltaTime * m_params.timeStep);
+
+		//UE_LOG(LogTemp, Log, TEXT("angular1: %f %f %f"), m_rigidyRotation[count].x, m_rigidyRotation[count].y, m_rigidyRotation[count].z);
+
+		//rigidyActors[count]->setAngularVelocity(sumTorque * scaleCorrectedValue  / m_params.unrealDeltaTime * m_params.timeStep);
+		//m_rigidyVel[count] = FVectorToFloat3(rigidyActors[count]->GetVelocity()/100 * timeC /m_params.timeStep);
+		//FVector diff = (m_rigidyPos[count] - prePos) / scaleCorrectedValue/ timeStep - sumVel;
+		// UE_LOG(LogTemp, Log, TEXT("diff %d : %f %f %f"), count, diff.X, diff.Y ,diff.Z);
+		 //UE_LOG(LogTemp, Log, TEXT("angluar velocity %d : %f %f %f"), count,m_rigidyVel[count].x, m_rigidyVel[count].z, m_rigidyVel[count].y);
+		UE_LOG(LogTemp, Log, TEXT("angluar a %d : %f %f %f"), count, sumTorque.X, sumTorque.Y, sumTorque.Z);
 		start = end;
 
 	}
@@ -793,7 +1059,7 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 void ASPHsystemWihCuda::updatePosition()
 {
 	FVector pos;
-	//copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
+	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
 	for (size_t i = 0; i < m_numFluidsParticles; i++)
 	{
 		pos = FVector(m_hPos[i*4] * scaleCorrectedValue, m_hPos[i * 4+2]*scaleCorrectedValue,m_hPos[i * 4 + 1]* scaleCorrectedValue);
@@ -830,10 +1096,19 @@ void ASPHsystemWihCuda::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	timeC = DeltaTime;
-	//m_params.unrealDeltaTime = DeltaTime;
-	//if (timeC < timeStep) return;	
-	//timeC = 0.0f;
+	timeC += DeltaTime;
+	spawnTimeChecker += DeltaTime;
+	m_params.unrealDeltaTime = DeltaTime;
+	
+	if (timeC < timeStep) return;	
+	timeC = 0.0f;
 	step();
+
+	if (spawnTimeChecker > spawnTime)
+	{
+		if (!spawnEnd && isSpawning) SpawnFluidParticles({ 20,0,200 });
+		spawnTimeChecker = 0;
+	}
+
 }
 

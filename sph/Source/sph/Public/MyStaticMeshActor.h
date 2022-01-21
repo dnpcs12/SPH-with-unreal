@@ -17,7 +17,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void setVelocity(FVector vel);
 
+	UFUNCTION(BlueprintCallable)
+		void setAngularVelocity(FVector vel);
+	UFUNCTION(BlueprintCallable)
+	    FVector GetAngularVelocity();
 protected:
 UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector mVelocity;
+
 };

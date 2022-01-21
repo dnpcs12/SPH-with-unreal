@@ -32,6 +32,12 @@ public:
 	void AddRigidyCylinder(float r, int height, FVector initpos);
 
 	UFUNCTION(BlueprintCallable)
+	void AddRigidyCube(float x, float y, float z, FVector initpos);
+	
+	UFUNCTION(BlueprintCallable)
+	void AddWheel(float r, FVector initpos);
+
+	UFUNCTION(BlueprintCallable)
 	void SpawnFluidParticles(FVector initpos);
 
 	UFUNCTION(BlueprintCallable)
@@ -39,6 +45,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ResetFluidPosition();
+
+	UFUNCTION(BlueprintCallable)
+	void OnOffSpawn();
 
 protected:
 	// Called when the game starts or when spawned
@@ -64,6 +73,8 @@ protected:
 
 	void addParticleToCuda(uint index, FVector pos, FVector vel = {0,0,0});
 
+	//return boundaryParticles number
+	void addsubWheel(unsigned int& bCount,float x, float y, float z,FVector initpos, float angle, float r);
 public:	
 	const float myPI = 3.141592f;
 	// Called every frame
@@ -151,20 +162,27 @@ public:
 	UPROPERTY(EditAnywhere)
 	    bool renderMarchingCube = true;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Spawn")
 		bool spawnMode = true;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Spawn")
 	    int spawnX = 3;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Spawn")
 		int spawnY = 3;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+	    float spawnTime = 1.0f;
+
+	UPROPERTY(EditAnywhere , Category = "Spawn")
+		bool isSpawning = false;
 
 	UPROPERTY(EditAnywhere)
 	    float scaleCorrectedValue;
 
 protected:
 	float timeC;
+	float spawnTimeChecker = 0;
 
 	bool spawnEnd = false;
 	bool test = false;
@@ -183,10 +201,10 @@ protected:
 	uint m_rigidyCount = 0;
 	std::vector<uint> m_numBoundarys;
 
-	std::vector<float3> m_rigidyMovingPos;
 	std::vector<float3> m_rigidyVel;
-	std::vector<FVector> m_rigidyPos;
-
+	std::vector<float3> m_rigidyPos;
+	std::vector<float4> m_rigidyPreRotation;
+	std::vector<float4> m_rigidyCurRotation;
 
 	// CPU data
 	float* m_hPos;              // particle positions
