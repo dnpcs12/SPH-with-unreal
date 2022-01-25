@@ -19,8 +19,8 @@ ASPHsystemWihCuda::ASPHsystemWihCuda()
 void ASPHsystemWihCuda::AddRigidySphere(float r, FVector initpos)
 {
 	addrigidy(initpos);
-
-	SIZE_T count = static_cast<SIZE_T>(PI * r / particleRadius);
+	r /= GetActorScale().X;
+	SIZE_T count = static_cast<SIZE_T>(PI * r / particleRadius  );
 	float seta = 2 * PI / count;
 	uint bCount = 0;
 	//UE_LOG(LogTemp, Log, TEXT("%f %f %f"), initpos.X, initpos.Y, initpos.Z);
@@ -30,7 +30,7 @@ void ASPHsystemWihCuda::AddRigidySphere(float r, FVector initpos)
 	{
 		float xr = r * cos(seta * z);
 		if (xr < 0) xr = 0;
-		SIZE_T xCount = static_cast<SIZE_T>((PI * xr) / particleRadius) + 1;
+		SIZE_T xCount = static_cast<SIZE_T>((PI * xr) / particleRadius  ) + 1;
 		float xSeta = 2 * PI / xCount;
 
 		for (SIZE_T x = 0; x < xCount; x++)
@@ -69,6 +69,7 @@ void ASPHsystemWihCuda::AddRigidyHemisphere(float r, FVector initpos,bool up)
 {
 
 	addrigidy(initpos);
+	r /= GetActorScale().X;
 	SIZE_T count = static_cast<SIZE_T>(PI * r / particleRadius);
 	float seta = 2 * PI / count;
 	uint bCount = 0;
@@ -292,7 +293,12 @@ void ASPHsystemWihCuda::AddWheel(float r, FVector initpos)
 
 void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 {
-	
+	if (spawnEnd)
+	{
+		RespawnParticles(initpos);
+		return;
+	}
+
 	if (m_numFluidsParticles >= m_maxFluidParticles)
 	{
 		spawnEnd = true;
@@ -313,7 +319,7 @@ void ASPHsystemWihCuda::SpawnFluidParticles(FVector initpos)
 			posZ = y * particleRadius * 2;
 			FVector pos = { posX, posY, posZ };
 			pos += initpos * (1/ scaleCorrectedValue);
-			addParticleToCuda(m_numFluidsParticles, pos,{5,0,-1});
+			addParticleToCuda(m_numFluidsParticles, pos,spawnInitVelocity);
 			particles->AddInstance(FTransform(FRotator::ZeroRotator, pos * scaleCorrectedValue, mParticleScale));
 			m_numFluidsParticles++;
 			if (m_numFluidsParticles >= m_maxFluidParticles)
@@ -339,7 +345,7 @@ void ASPHsystemWihCuda::ResistRigidy(AMyStaticMeshActor* rigidyActor, int type)
 	
 	if(type==1)
 	{
-		AddRigidySphere(actorT.GetScale3D().X / 2, actorT.GetLocation() - GetActorLocation());
+		AddRigidySphere(actorT.GetScale3D().X / 2, (actorT.GetLocation() - GetActorLocation()) / GetActorScale().X );
 	}
 
 	else if (type == 2)
@@ -377,6 +383,31 @@ void ASPHsystemWihCuda::ResetFluidPosition()
 				addParticleToCuda(i, {posX,posY,posZ});
 				i++;
 			}
+		}
+	}
+	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
+	copyArrayToDevice(m_dVel, m_hVel, 0, m_maxParticles * 4 * sizeof(float));
+}
+
+void ASPHsystemWihCuda::RespawnParticles(FVector respawnPos)
+{
+	float posX = 0;
+	float posY = 0;
+	float posZ = 0;
+
+	copyArrayFromDevice(m_hPos, m_dPos, sizeof(float) * 4 * m_maxParticles);
+	
+	for (size_t x = 0; x < spawnX; x++)
+	{
+		for (size_t y = 0; y < spawnY; y++)
+		{
+			posX = -boundary.X;
+			posY = x * particleRadius * 2;
+			posZ = y * particleRadius * 2;
+			FVector pos = { posX, posY, posZ };
+			pos += respawnPos * (1 / scaleCorrectedValue);
+			addParticleToCuda(respawnIter,pos,spawnInitVelocity);
+			respawnIter = (respawnIter + 1) % m_numFluidsParticles; 
 		}
 	}
 	copyArrayToDevice(m_dPos, m_hPos, 0, m_maxParticles * 4 * sizeof(float));
@@ -565,10 +596,11 @@ void ASPHsystemWihCuda::initSystem()
 	m_params.particleRadius = particleRadius;
 	
 	m_params.boundary = FVectorToFloat3(boundary*(1/ scaleCorrectedValue));
-	m_params.worldOrigin = FVectorToFloat3(-boundary * (1 / scaleCorrectedValue));//make_float3(-1.0f,-1.0f,-1.0f);
+	//m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
+	m_params.worldOrigin = FVectorToFloat3(-boundary * (1.1f / scaleCorrectedValue));//make_float3(-1.0f,-1.0f,-1.0f);
 	float cellSize = m_params.particleRadius * 2.0f;//supportRadius;//m_params.particleRadius * 2.0f;
 	//m_params.cellSize = make_float3(cellSize,cellSize,cellSize);
-	m_params.cellSize = make_float3((boundary.X ) * 3.0f / scaleCorrectedValue / 64, (boundary.Z ) * 3.0f / scaleCorrectedValue / 64, (boundary.Y ) * 3.0f / scaleCorrectedValue / 64);
+	m_params.cellSize = make_float3((boundary.X ) *2.3f / scaleCorrectedValue / 64, (boundary.Z ) * 2.3f / scaleCorrectedValue / 64, (boundary.Y ) * 2.3f / scaleCorrectedValue / 64);
 	
 	//두 그리드를 일치시킴.
 	mc_voxelSize = m_params.cellSize;
@@ -674,7 +706,7 @@ void ASPHsystemWihCuda::initSystem()
 			{
 				posX = x * particleRadius * 2 - m_params.boundary.x/2;
 				posY = y * particleRadius * 2 - m_params.boundary.z/2;
-				posZ = z * particleRadius * 2 - m_params.boundary.y/2;
+				posZ = z * particleRadius * 2 - m_params.boundary.y;
 				FVector pos = { posX, posY, posZ };
 				addParticleToCuda(idx,pos);
 				if(!renderMarchingCube)
@@ -960,20 +992,6 @@ void ASPHsystemWihCuda::createIsosurface()
 		Normals.Add(FVector(-mc_hPos[3 * i + 2].x, -mc_hPos[3 * i + 2].z, -mc_hPos[3 * i + 2].y));
 	}
 
-	//Vertices.Add(FVector(0, 0, 0));
-	//Vertices.Add(FVector(0, 100, 0));
-	//Vertices.Add(FVector(0, 0, 100));
-	//Triangles.Add(0);
-	//Triangles.Add(1);
-	//Triangles.Add(2);
-
-	//Normals.Add(FVector(1, 0, 0));
-	//Normals.Add(FVector(1, 0, 0));
-	//Normals.Add(FVector(1, 0, 0));
-
-	//Uv0.Add(FVector2D(0, 0));
-	//Uv0.Add(FVector2D(10, 0));
-	//Uv0.Add(FVector2D(0, 10));
 
 	
 	ParticleProceduralMeshComponent->CreateMeshSection(0, Vertices, Triangles, Normals, Uv0, VertexColors, Tangents, false);
@@ -999,8 +1017,8 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 		float3 prePos = m_rigidyPos[count];
 		//FVector preRotation = {m_rigidyRotation[count].x,m_rigidyRotation[count].z,m_rigidyRotation[count].y};
 
-		m_rigidyPos[count] = FVectorToFloat3(rigidyActors[count]->GetActorTransform().GetLocation() - GetActorLocation())/scaleCorrectedValue;
-		m_rigidyVel[count] = (m_rigidyPos[count] - prePos) /*/ scaleCorrectedValue */ / m_params.timeStep; //FVectorToFloat3(sumVel);
+		m_rigidyPos[count] = FVectorToFloat3(rigidyActors[count]->GetActorTransform().GetLocation() - GetActorLocation())/scaleCorrectedValue / GetActorScale().X;
+		m_rigidyVel[count] = (m_rigidyPos[count] - prePos)/*/ scaleCorrectedValue */ / m_params.timeStep; //FVectorToFloat3(sumVel);
 		FRotator curRotation = rigidyActors[count]->GetActorRotation();
 		FQuat q = curRotation.Quaternion();
 
@@ -1035,7 +1053,7 @@ void ASPHsystemWihCuda::updateRigidyPosition()
 		
 		//rigidyActors[count]->setAngularVelocity(FVector{0,0.01f,0} * scaleCorrectedValue / m_params.unrealDeltaTime * m_params.timeStep);
 
-		rigidyActors[count]->setVelocity((sumVel )*scaleCorrectedValue  / m_params.unrealDeltaTime * m_params.timeStep);
+		rigidyActors[count]->setVelocity((sumVel )*scaleCorrectedValue * GetActorScale().X / m_params.unrealDeltaTime * m_params.timeStep);
 		rigidyActors[count]->setAngularVelocity(sumTorque * 100 *100 / m_params.unrealDeltaTime * m_params.timeStep);
 
 		//UE_LOG(LogTemp, Log, TEXT("angular1: %f %f %f"), m_rigidyRotation[count].x, m_rigidyRotation[count].y, m_rigidyRotation[count].z);
@@ -1106,7 +1124,7 @@ void ASPHsystemWihCuda::Tick(float DeltaTime)
 
 	if (spawnTimeChecker > spawnTime)
 	{
-		if (!spawnEnd && isSpawning) SpawnFluidParticles({ 20,0,200 });
+		if (isSpawning) SpawnFluidParticles({ 20,0,200 });
 		spawnTimeChecker = 0;
 	}
 

@@ -47,6 +47,9 @@ public:
 	void ResetFluidPosition();
 
 	UFUNCTION(BlueprintCallable)
+	void RespawnParticles(FVector respawnPos);
+
+	UFUNCTION(BlueprintCallable)
 	void OnOffSpawn();
 
 protected:
@@ -172,6 +175,9 @@ public:
 		int spawnY = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Spawn")
+		FVector spawnInitVelocity = {0,0,0};
+
+	UPROPERTY(EditAnywhere, Category = "Spawn")
 	    float spawnTime = 1.0f;
 
 	UPROPERTY(EditAnywhere , Category = "Spawn")
@@ -183,10 +189,12 @@ public:
 protected:
 	float timeC;
 	float spawnTimeChecker = 0;
+	uint respawnIter = 0u;
 
 	bool spawnEnd = false;
 	bool test = false;
 	uint bnum = 0;
+
 
 	FVector mParticleScale;
 	uint m_maxParticles = 0; 
