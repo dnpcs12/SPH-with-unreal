@@ -52,7 +52,12 @@ Marching cubes is a computer graphics algorithm, published in the 1987 SIGGRAPH 
 ![ezgif com-gif-maker (10)](https://user-images.githubusercontent.com/50435598/147320971-bb61b287-c46e-451f-a58e-09b0e9121ae9.gif)
 
 
-References
+## Video 
+<li><a href = "https://youtu.be/NnweVaGnOLk">[KHU 2021] Weakly Compressible Smoothed Particle Hydrodynamics (SPH) using Unreal</a></li>
+<li><a href = "https://www.youtube.com/watch?v=fi4nI1JXpIo"> [Pearl Abyss × KHUSWC] Smoothed-particle Hydrodynamics with Unreal Engine </a></li>
+
+
+## References
 <ol>
 <li id="footnote_1"> M. Müller, D. Charypar, and M. Gross. Particle-based fluid simulation for interactive applications. In Proceedings of the 2003 ACM SIGGRAPH/Eurographics Symposium on Computer Animation, pages 154–159, 2003.</li>
 <li id="footnote_2">  Koschier, Dan, Jan Bender, Barbara Solenthaler, and Matthias Teschner. "Smoothed particle hydrodynamics techniques for the physics based simulation of fluids and solids." arXiv preprint arXiv:2009.06944 (2020).</li>
